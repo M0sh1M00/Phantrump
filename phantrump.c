@@ -1,6 +1,4 @@
-// MADE BY OSCAR HOUSTON 7/9/2021
-
-// shoutout to SFML for being a real one
+// MADE BY OSCAR HOUSTON
 
 #include <SFML/Graphics.hpp>
 #include <iostream>
@@ -11,6 +9,7 @@
 #include <string>
 #include <ws2tcpip.h>
 #include <fcntl.h>
+#include <fstream>
 
 
 #pragma comment (lib, "ws2_32.lib")
@@ -30,7 +29,7 @@ using namespace std;
 #define TRUE 1
 #define FALSE 0
 
-#define SCREENWIDTH 1400
+#define SCREENWIDTH 1350
 #define SCREENHEIGHT 800
 
 #define A2WIDTH 220//238 //140*1.7//84//140   25.25% is PS
@@ -45,6 +44,9 @@ using namespace std;
 #define CARD_PLACING 1
 #define PLAYER_1_ATK 2
 #define PLAYER_2_ATK 3
+
+#define ANIMATION_RUNNING 1
+#define ANIMATION_NOT_RUNNING 0
 
 #define NORMAL_DISPLAY 1
 #define ENLARGED_DISPLAY 2
@@ -61,6 +63,22 @@ struct Texture_Struct {
     sf::Texture Background;
 
     sf::Texture S_Card_Backside;
+
+    sf::Texture Ready_Button;
+    sf::Texture Discard_Button;
+    sf::Texture Show_Button;
+    sf::Texture Inspect_Button;
+
+    sf::Texture Power_Button;
+    sf::Texture Defence_Button;
+    sf::Texture Intelligence_Button;
+    sf::Texture Freakiness_Button;
+    sf::Texture Agility_Button;
+
+
+    //buttons
+    sf::Texture Ready_Lit;
+    sf::Texture Ready_Unlit;
 
     sf::Texture S_Vriska_1;
     sf::Texture S_Phantom_2;
@@ -157,6 +175,28 @@ struct Texture_Struct {
 
 };
 
+struct Animation_Screen {
+
+    struct Inventory* player1_Card = NULL;
+    struct Inventory* player2_Card = NULL;
+
+    sf::RectangleShape player1_Card_image;
+    sf::RectangleShape player2_Card_image;
+
+    sf::RectangleShape background_image;
+    sf::RectangleShape icon_image;
+
+    sf::Text player1_text;
+    sf::Text player2_text;
+
+    int attacktype;
+
+    //add fonts and other stuff here l8r
+
+
+
+};
+
 struct Game_Board {
 
     struct Inventory* player1_Ter = NULL;
@@ -167,12 +207,39 @@ struct Game_Board {
     struct Inventory* player2_Amp = NULL;
     struct Inventory* player2_Aer = NULL;
 
+    sf::RectangleShape player1_Ter_image;
+    sf::RectangleShape player1_Amp_image;
+    sf::RectangleShape player1_Aer_image;
+
+    sf::RectangleShape ready_button_image;
+    sf::RectangleShape discard_button_image;
+    sf::RectangleShape inspect_button_image;
+    sf::RectangleShape show_button_image;
+
+
+    sf::RectangleShape power_button_image;
+    sf::RectangleShape defence_button_image;
+    sf::RectangleShape intelligence_button_image;
+    sf::RectangleShape freakiness_button_image;
+    sf::RectangleShape agility_button_image;
+
+    int player1_Ter_image_x_coord;
+    int player1_Amp_image_x_coord;
+    int player1_Aer_image_x_coord;
+
+    int player1_y_coord;
+    int player2_y_coord;
+
+    sf::RectangleShape player2_Ter_image;
+    sf::RectangleShape player2_Amp_image;
+    sf::RectangleShape player2_Aer_image;
+
     sf::RectangleShape board_image;
     sf::RectangleShape elements;
 
     sf::RectangleShape background;
 
-    sf::RectangleShape selecting_image; // when a card is click highlight possible board movements in yellow
+    //sf::RectangleShape selecting_image; // when a card is click highlight possible board movements in yellow
 };
 
 struct Inventory {
@@ -188,13 +255,15 @@ struct Inventory {
     int freakiness = 0;
     int intelligence = 0;
 
-    int element = 1;
+    int element = TERRA;
     
     int display_type = 1; //1 is normal, 2 is enlarged (happens when mouse is over) and 3 is when the card is in play (skip over it in functions)
 
     int selected = FALSE;
 
     sf::RectangleShape card_image;
+
+    int on_board = FALSE;
 
     //sf::RectangleShape card_graphics; ADD ACTUAL GRAPHICS HERE
 
@@ -570,6 +639,17 @@ void Initialise_Graphics(struct Texture_Struct* textures, struct Inventory* play
     if (!textures->Elements.loadFromFile("Graphics/Board/Elements.png")) { cout << "TEXTURE ERROR" << endl; }
     if (!textures->Background.loadFromFile("Graphics/Board/Background.png")) { cout << "TEXTURE ERROR" << endl; }
 
+    if (!textures->Ready_Button.loadFromFile("Graphics/Buttons/Ready_Unlit.png")) { cout << "TEXTURE ERROR" << endl; }
+    if (!textures->Discard_Button.loadFromFile("Graphics/Buttons/Discard_Unlit.png")) { cout << "TEXTURE ERROR" << endl; }
+    if (!textures->Show_Button.loadFromFile("Graphics/Buttons/Show_Unlit.png")) { cout << "TEXTURE ERROR" << endl; }
+    if (!textures->Inspect_Button.loadFromFile("Graphics/Buttons/Inspect_Unlit.png")) { cout << "TEXTURE ERROR" << endl; }
+
+    if (!textures->Power_Button.loadFromFile("Graphics/Buttons/Power_Unlit.png")) { cout << "TEXTURE ERROR" << endl; }
+    if (!textures->Defence_Button.loadFromFile("Graphics/Buttons/Defence_Unlit.png")) { cout << "TEXTURE ERROR" << endl; }
+    if (!textures->Agility_Button.loadFromFile("Graphics/Buttons/Agility_Unlit.png")) { cout << "TEXTURE ERROR" << endl; }
+    if (!textures->Freakiness_Button.loadFromFile("Graphics/Buttons/Freakiness_Unlit.png")) { cout << "TEXTURE ERROR" << endl; }
+    if (!textures->Intelligence_Button.loadFromFile("Graphics/Buttons/Intelligence_Unlit.png")) { cout << "TEXTURE ERROR" << endl; }
+
     struct Inventory* curnode = player1_cards;
     while (curnode != NULL) {
         //curnode->card_image.setTexture(&textures->S_Sledstac_16, true);
@@ -582,15 +662,127 @@ void Initialise_Graphics(struct Texture_Struct* textures, struct Inventory* play
         curnode = curnode->next;
     }
 
+    game_board->ready_button_image.setTexture(&textures->Ready_Button, true);
+    game_board->discard_button_image.setTexture(&textures->Discard_Button, true);
+    game_board->show_button_image.setTexture(&textures->Show_Button, true);
+    game_board->inspect_button_image.setTexture(&textures->Inspect_Button, true);
+
+    game_board->power_button_image.setTexture(&textures->Power_Button, true);
+    game_board->defence_button_image.setTexture(&textures->Defence_Button, true);
+    game_board->freakiness_button_image.setTexture(&textures->Freakiness_Button, true);
+    game_board->intelligence_button_image.setTexture(&textures->Intelligence_Button, true);
+    game_board->agility_button_image.setTexture(&textures->Agility_Button, true);
+
     game_board->board_image.setTexture(&textures->Board_Cards, true);
     game_board->elements.setTexture(&textures->Elements, true);
     game_board->background.setTexture(&textures->Background, true);
 }
+void Get_Card_Data_Two(struct Inventory* curnode, int card_num) {
+    string file_path = "Card_Data/card.txt";
+    int counter;
+    file_path.insert(14, std::to_string(card_num));
+    string line;
+
+    ifstream myfile(file_path);
+    if (myfile.is_open())
+    {
+        counter = 0;
+        while (getline(myfile, line)) {
+            cout << line << endl;
+            if (counter == 0) {
+                //name
+            }
+            if (counter == 1) {
+                //element
+                curnode->element = std::stoi(line);
+            }
+            if (counter == 2) {
+                curnode->agility = std::stoi(line);
+            }
+            if (counter == 3) {
+                curnode->intelligence = std::stoi(line);
+            }
+            if (counter == 4) {
+                curnode->power = std::stoi(line);
+            }
+            if (counter == 5) {
+                curnode->defence = std::stoi(line);
+            }
+            if (counter == 6) {
+                curnode->freakiness = std::stoi(line);
+            }
+            counter++;
+        }
+        myfile.close();
+    }
+    else cout << "Unable to open file";
+
+}
+void Get_Card_Data(struct Inventory* player1_cards, struct Inventory* player2_cards, struct Inventory* card_pile) {
+    
+    struct Inventory* curnode = player1_cards;
+    while (curnode != NULL) {
+        Get_Card_Data_Two(curnode, curnode->card_num);
+        curnode = curnode->next;
+    }
+    curnode = player2_cards;
+    while (curnode != NULL) {
+        Get_Card_Data_Two(curnode, curnode->card_num);
+        curnode = curnode->next;
+    }
+
+
+}
+void Setup_Animation(struct Animation_Screen* animation_screen) {
+    //60% size from original
+    int ypos = (SCREENHEIGHT - 731) / 2;
+
+    sf::RectangleShape card(sf::Vector2f(522, 731));
+    animation_screen->player1_Card_image = card;
+    animation_screen->player2_Card_image = card;
+
+    animation_screen->player1_Card_image.setPosition(ypos, ypos);
+    animation_screen->player2_Card_image.setPosition(SCREENWIDTH- ypos -522, ypos);
+    cout << "test" << endl;
+
+}
+void Setup_Buttons(struct Game_Board* game_board) {
+
+    int new_height = (A2HEIGHT * 2) + (A2WIDTH / 2);//(A2HEIGHT * 3) + (A2HEIGHT / 2);
+    int new_width = (A2WIDTH * 3) + (A2WIDTH / 2);
+    printf("height: %d, width: %d\n", new_height, new_width);
+    sf::RectangleShape button(sf::Vector2f(154, 50));
+    int board_pos_x = (SCREENWIDTH / 2) - (new_width / 2);
+
+    game_board->ready_button_image = button;
+    game_board->discard_button_image = button;
+    game_board->inspect_button_image = button;
+    game_board->show_button_image = button;
+    //154 is width of image
+    game_board->ready_button_image.setPosition(20 + board_pos_x, new_height);
+    game_board->discard_button_image.setPosition(20 + board_pos_x+((new_width/4)*1), new_height);
+    game_board->inspect_button_image.setPosition(20 + board_pos_x + ((new_width / 4) * 2), new_height);
+    game_board->show_button_image.setPosition(20 + board_pos_x + ((new_width / 4) * 3), new_height);
+
+    sf::RectangleShape button2(sf::Vector2f(50, 50));
+
+    game_board->power_button_image = button2;
+    game_board->defence_button_image = button2;
+    game_board->freakiness_button_image = button2;
+    game_board->agility_button_image = button2;
+    game_board->intelligence_button_image = button2;
+
+    game_board->power_button_image.setPosition(40 + board_pos_x + ((new_width / 5) * 2), ((new_height/2) -25));
+    game_board->defence_button_image.setPosition(40 + board_pos_x + ((new_width / 5) * 3), ((new_height / 2) - 25));
+    game_board->freakiness_button_image.setPosition(40 + board_pos_x + ((new_width / 5) * 4), ((new_height / 2) - 25));
+    game_board->agility_button_image.setPosition(40 + board_pos_x + ((new_width / 5) * 0), ((new_height / 2) - 25));
+    game_board->intelligence_button_image.setPosition(40 + board_pos_x + ((new_width / 5) * 1), ((new_height / 2) - 25));
+}
+
 void Set_Board_Position(struct Game_Board* game_board) {
 
     int new_height = (A2HEIGHT * 2) + (A2WIDTH / 2);//(A2HEIGHT * 3) + (A2HEIGHT / 2);
     int new_width = (A2WIDTH * 3) + (A2WIDTH / 2);
-    //sf::RectangleShape card(sf::Vector2f(new_width, new_height));
     printf("height: %d, width: %d\n",new_height,new_width);
     sf::RectangleShape board(sf::Vector2f(new_width, new_height));
     int board_pos_x = (SCREENWIDTH / 2) - (new_width / 2);
@@ -599,11 +791,49 @@ void Set_Board_Position(struct Game_Board* game_board) {
     game_board->board_image = board;
     game_board->elements = board;
 
+
+    //REDO THIS SECTION IN A FUTURE UPDATE - MAKE IT NOT HARDCODED
+    sf::RectangleShape card(sf::Vector2f(A2WIDTH, A2HEIGHT));
+    card.setFillColor(sf::Color::Yellow);
+
+    sf::RectangleShape card2(sf::Vector2f(A2WIDTH, A2HEIGHT));
+
+    game_board->player1_Ter_image = card;
+    game_board->player1_Amp_image = card;
+    game_board->player1_Aer_image = card;
+
+    game_board->player2_Ter_image = card2;
+    game_board->player2_Amp_image = card2;
+    game_board->player2_Aer_image = card2;
+
+    game_board->player1_Ter_image_x_coord = board_pos_x + 21;
+    game_board->player1_Amp_image_x_coord = board_pos_x + 21 + 34 + A2WIDTH;
+    game_board->player1_Aer_image_x_coord = board_pos_x + 21 + (34 * 2) + (A2WIDTH * 2);
+
+    //game_board->player2_Ter_image_x_coord = board_pos_x + 21;
+    //game_board->player2_Amp_image_x_coord = board_pos_x + 21 + 34 + A2WIDTH;
+    //game_board->player2_Aer_image_x_coord = board_pos_x + 21 + (34 * 2) + (A2WIDTH * 2);
+
+    game_board->player1_y_coord = 16 + 79 + A2HEIGHT;
+    game_board->player2_y_coord = 16;
+    //game_board->player1_Amp_image_y_coord = 16 + 79 + A2HEIGHT;
+    //game_board->player1_Aer_image_y_coord = 16 + 79 + A2HEIGHT;
+
+    game_board->player1_Ter_image.setPosition(game_board->player1_Ter_image_x_coord, game_board->player1_y_coord);
+    game_board->player1_Amp_image.setPosition(game_board->player1_Amp_image_x_coord, game_board->player1_y_coord);
+    game_board->player1_Aer_image.setPosition(game_board->player1_Aer_image_x_coord, game_board->player1_y_coord);
+
+    game_board->player2_Ter_image.setPosition(game_board->player1_Ter_image_x_coord, game_board->player2_y_coord);
+    game_board->player2_Amp_image.setPosition(game_board->player1_Amp_image_x_coord, game_board->player2_y_coord);
+    game_board->player2_Aer_image.setPosition(game_board->player1_Aer_image_x_coord, game_board->player2_y_coord);
+
+    //game_board->player1_Ter_image.setPosition(board_pos_x + new_width /(21), new_height /16);
+
     sf::RectangleShape background(sf::Vector2f(SCREENWIDTH, SCREENHEIGHT));
     game_board->background = background;
 }
 
-void Set_Card_Positions(struct Inventory* player1_cards, struct Inventory* player2_cards, struct EmptyCard empty_card_array[16]) {
+void Set_Card_Positions(struct Inventory* player1_cards, struct Inventory* player2_cards) {
     //Print_Linked_List(player1_cards);
     
     //Setup xcoords and ycoords
@@ -662,7 +892,23 @@ void Get_Highlighted_Card(sf::RenderWindow& window, struct Inventory* player1_ca
         highlighted_card->card_image.setSize(sf::Vector2f(A2WIDTH * 1.2, A2HEIGHT * 1.2));
     }
 }
-
+struct Inventory* Get_Enemy_Card_To_Attack(sf::RenderWindow& window, struct Game_Board* game_board) {
+    sf::Vector2f mouse = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    sf::FloatRect bounds;
+    bounds = game_board->player2_Ter_image.getGlobalBounds();
+    if (bounds.contains(mouse)) {
+        return game_board->player2_Ter;
+    }
+    bounds = game_board->player2_Amp_image.getGlobalBounds();
+    if (bounds.contains(mouse)) {
+        return game_board->player2_Amp;
+    }
+    bounds = game_board->player2_Aer_image.getGlobalBounds();
+    if (bounds.contains(mouse)) {
+        return game_board->player2_Aer;
+    }
+    return NULL;
+}
 struct Inventory* Get_Selected_Card(sf::RenderWindow& window, struct Inventory* player1_cards, struct Texture_Struct * textures) {
 
     struct Inventory* selected_card = NULL;
@@ -702,6 +948,7 @@ struct Inventory* Get_Selected_Card(sf::RenderWindow& window, struct Inventory* 
         selected_card->card_image.setSize(sf::Vector2f(A2WIDTHHIGHLIGHTED, A2HEIGHTHIGHLIGHTED));
         selected_card->card_image.setPosition(  (selected_card->x_coord) - ((A2WIDTHHIGHLIGHTED-A2WIDTH)/2), (selected_card->y_coord) - ((A2HEIGHTHIGHLIGHTED - A2HEIGHT) / 2));
         selected_card->display_type = ENLARGED_DISPLAY;
+        //cout << selected_card->element << endl;
         //selected_card->card_image.setSize(sf::Vector2f(A2WIDTH * 1.2, A2HEIGHT * 1.2));
         return selected_card;
     }
@@ -712,17 +959,391 @@ struct Inventory* Get_Selected_Card(sf::RenderWindow& window, struct Inventory* 
 
 }
 
+
+void Transfer_Ply2_Cards_To_Board(uint32_t player2_array[3], struct Inventory* player2_cards, struct Game_Board* game_board) {
+    struct Inventory* curnode = player2_cards;
+    // Terra
+    if(player2_array[0] != 0) {
+        while (curnode != NULL) {
+            //cout << curnode->card_num <<" <- card | compare against-> " << player2_array[0] << endl;
+            if (curnode->card_num == player2_array[0]) {
+                game_board->player2_Ter = curnode;
+                cout << "SUCESS1" << endl;
+            }
+            curnode = curnode->next;
+        }
+    }
+    else {
+        game_board->player2_Ter = NULL;
+    }
+    curnode = player2_cards;
+    if (player2_array[1] != 0) {
+        while (curnode != NULL) {
+            if (curnode->card_num == player2_array[1]) {
+                game_board->player2_Amp = curnode;
+                cout << "SUCESS2" << endl;
+            }
+            curnode = curnode->next;
+        }
+    }
+    else {
+        game_board->player2_Amp = NULL;
+    }
+    curnode = player2_cards;
+    if (player2_array[2] != 0) {
+        while (curnode != NULL) {
+            if (curnode->card_num == player2_array[2]) {
+                game_board->player2_Aer = curnode;
+                cout << "SUCESS3" << endl;
+            }
+            curnode = curnode->next;
+        }
+    }
+    else {
+        game_board->player2_Aer = NULL;
+    }
+
+    return;
+
+
+
+}
+
+
+
+int Check_If_Card_Board_Available(sf::RenderWindow& window, struct Game_Board* game_board, struct Inventory* card_selected) {
+    sf::Vector2f mouse = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    sf::FloatRect bounds;
+    bounds = game_board->player1_Ter_image.getGlobalBounds();
+    if ((card_selected->element == TERRA || card_selected->element == INCOGNITO) && game_board->player1_Ter == NULL) {
+        if (bounds.contains(mouse)) {return TRUE; }
+    }
+    bounds = game_board->player1_Amp_image.getGlobalBounds();
+    if ((card_selected->element == AMPHIBIOUS || card_selected->element == INCOGNITO) && game_board->player1_Amp == NULL) {
+        if (bounds.contains(mouse)) { return TRUE; }
+    }
+    bounds = game_board->player1_Aer_image.getGlobalBounds();
+    if ((card_selected->element == AERIAL || card_selected->element == INCOGNITO) && game_board->player1_Aer == NULL) {
+        if (bounds.contains(mouse)) { return TRUE; }
+    }
+    return FALSE;
+
+}
+struct Inventory* Put_Card_At_Back(struct Inventory* player1_cards, int card_number) {
+    struct Inventory* curnode = player1_cards;
+    struct Inventory* selected_card = NULL;
+    if (curnode->next == NULL) {
+        return player1_cards;
+        //do nothing
+    }
+    /*if (curnode->card_num == card_number) {
+        selected_card = curnode;
+        player1_cards = selected_card->next;
+    }*/
+    while (curnode->next != NULL) {
+        if (curnode->next->card_num == card_number) {
+            selected_card = curnode->next;
+            if (curnode->next->next != NULL) {
+                curnode->next = curnode->next->next;
+            }
+        }
+        curnode = curnode->next;
+    }
+    if (selected_card == NULL) {
+        selected_card = player1_cards;
+        struct Inventory* new_ll = player1_cards->next;
+        curnode->next = selected_card;
+        selected_card->next = NULL;
+        return new_ll;
+    }
+    curnode->next = selected_card;
+    selected_card->next = NULL;
+    
+    //Print_Linked_List(player1_cards);
+    return player1_cards;
+}
+
+int Clicked_Empty_Pos(sf::RenderWindow& window, struct Game_Board* game_board) {
+
+    sf::Vector2f mouse = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    sf::FloatRect bounds;
+    bounds = game_board->player2_Ter_image.getGlobalBounds();
+    if (bounds.contains(mouse)) {
+        return 1;
+    }
+    bounds = game_board->player2_Amp_image.getGlobalBounds();
+    if (bounds.contains(mouse)) {
+        return 1;
+    }
+    bounds = game_board->player2_Aer_image.getGlobalBounds();
+    if (bounds.contains(mouse)) {
+        return 1;
+    }
+    return 0;
+
+}
+
+int Find_Winner(struct Inventory* card_attacking, struct Inventory* card_attacked, int attack_type) {
+    // 0: tie 1: player1 wins 2: player2 wins
+
+    //agility
+
+    if (attack_type == 1) {
+        if (card_attacking->agility > card_attacked->agility) {
+            return 1;
+        }
+        else if (card_attacking->agility < card_attacked->agility) {
+            return 2;
+        }
+        return 0;
+    }
+
+    //add loser discard pile
+
+}
+
+void Set_New_Position(struct Inventory* player1_cards) {
+    //reorganise LL so all on board cards are at the end
+    // 
+    //Setup xcoords and ycoords
+    int buffer = 25; // empty space in top right corner
+    int card_room = 60; // y distance between cards
+
+    //sf::RectangleShape card(sf::Vector2f(A2WIDTH, A2HEIGHT));
+
+    struct Inventory* curnode = player1_cards;
+    int i = 0;
+    while (curnode != NULL) {
+        if (curnode->on_board == FALSE) {
+            curnode->x_coord = buffer;
+            curnode->y_coord = buffer + (card_room * i);
+            //curnode->card_image = card;
+            if (curnode->display_type == ENLARGED_DISPLAY) {
+                curnode->card_image.setPosition((curnode->x_coord) - ((A2WIDTHHIGHLIGHTED - A2WIDTH) / 2), (curnode->y_coord) - ((A2HEIGHTHIGHLIGHTED - A2HEIGHT) / 2));
+            }
+            else {
+                curnode->card_image.setPosition(curnode->x_coord, curnode->y_coord);
+            }
+        }
+        curnode = curnode->next;
+        i++;
+
+    }
+
+    //Print_Linked_List(player1_cards);
+}
+int Is_Card_Selected_On_Board(struct Game_Board* game_board, struct Inventory* selected_card) {
+    if (game_board->player1_Ter == selected_card) {
+        return 1;
+    }
+    if (game_board->player1_Amp == selected_card) {
+        return 1;
+    }
+    if (game_board->player1_Aer == selected_card) {
+        return 1;
+    }
+
+
+
+}
+struct Inventory* Remove_From_Board(sf::RenderWindow& window, struct Game_Board* game_board, struct Inventory* player1_cards) {
+    sf::Vector2f mouse = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+
+    struct Inventory* card_selected = NULL;
+
+    if (game_board->player1_Ter_image.getGlobalBounds().contains(mouse)) {
+        card_selected = game_board->player1_Ter;
+        game_board->player1_Ter = NULL;
+    }
+    else if (game_board->player1_Amp_image.getGlobalBounds().contains(mouse)) {
+        card_selected = game_board->player1_Amp;
+        game_board->player1_Amp = NULL;
+    }
+    else if (game_board->player1_Aer_image.getGlobalBounds().contains(mouse)) {
+        card_selected = game_board->player1_Aer;
+        game_board->player1_Aer = NULL;
+    }
+
+    if (card_selected != NULL) {
+        int card_number = card_selected->card_num;
+        card_selected->on_board = FALSE;
+        if (player1_cards->on_board == TRUE) {
+            //if first card is on board
+
+        }
+        else {
+            //there are cards that are not on the board
+
+            //remove instance of card_selected
+            struct Inventory* curnode = player1_cards;
+            struct Inventory* prevnode = player1_cards;
+
+            if (curnode->next == NULL) {
+                //if there is only 1 card
+                return player1_cards;
+            }
+            /*
+            if (curnode->next->next == NULL) {
+                //if there are only 2 cards REDO THIS
+                if (player1_cards->on_board == TRUE) {
+                    if (player1_cards->card_num == card_number) {
+                        return player1_cards;
+                    }
+                    else {
+                        card_selected->next = player1_cards;
+                        card_selected->next->next = NULL;
+                        return card_selected;
+                    }
+                }
+                return player1_cards;
+            }
+            */
+            //remove the card from the list
+            /*
+            cout << "test1" << endl;
+            while (curnode->next->next != NULL) {
+
+                if (curnode->next->card_num == card_number) {
+                    curnode->next = curnode->next->next;
+                    if (curnode->next->next == NULL) { break; }
+                }
+                curnode = curnode->next;
+
+            }
+            cout << "test2" << endl;
+            */
+
+            // If head node itself holds the key to be deleted 
+            if (curnode != NULL && curnode->card_num == card_number)
+            {
+                return curnode;
+            }
+
+            // Search for the key to be deleted, keep track of the 
+            // previous node as we need to change 'prev->next' 
+            while (curnode != NULL && curnode->card_num != card_number)
+            {
+                prevnode = curnode;
+                curnode = curnode->next;
+            }
+            prevnode->next = curnode->next;
+
+            /*
+            if (curnode->next->card_num == card_number) {
+                curnode->next = curnode->next->next;
+
+            }
+            */
+
+            //ADD MORE EDGE CASES ABOVE
+            curnode = player1_cards;
+            while (curnode != NULL) {
+                if (curnode->on_board == TRUE) {
+                    //cout << "!!!!!!!!!!!!!!!!!" << endl;
+                    Print_Linked_List(player1_cards);
+                    //struct Inventory* tempnode = curnode->next;
+                    prevnode->next = card_selected;
+                    card_selected->next = curnode;
+                    //card_selected->next = player1_cards;
+                    return player1_cards;
+
+
+
+                }
+                prevnode = curnode;
+                curnode = curnode->next;
+            }
+            prevnode->next = card_selected;
+            card_selected->next = curnode;
+
+        }
+
+    }
+    return player1_cards;
+
+}
+void Set_Card_To_Board(sf::RenderWindow& window, struct Game_Board* game_board, struct Inventory* card_selected) {
+
+    sf::Vector2f mouse = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+
+    if (game_board->player1_Ter_image.getGlobalBounds().contains(mouse)) {
+        game_board->player1_Ter = card_selected;
+
+
+        card_selected->x_coord = game_board->player1_Ter_image_x_coord;
+        card_selected->y_coord = game_board->player1_y_coord;
+        
+        card_selected->card_image.setPosition(card_selected->x_coord, card_selected->y_coord);
+    }
+    else if (game_board->player1_Amp_image.getGlobalBounds().contains(mouse)) {
+        game_board->player1_Amp = card_selected;
+
+
+        card_selected->x_coord = game_board->player1_Amp_image_x_coord;
+        card_selected->y_coord = game_board->player1_y_coord;
+
+        card_selected->card_image.setPosition(card_selected->x_coord, card_selected->y_coord);
+    }
+    else if (game_board->player1_Aer_image.getGlobalBounds().contains(mouse)) {
+        game_board->player1_Aer = card_selected;
+
+
+        card_selected->x_coord = game_board->player1_Aer_image_x_coord;
+        card_selected->y_coord = game_board->player1_y_coord;
+
+        card_selected->card_image.setPosition(card_selected->x_coord, card_selected->y_coord);
+    }
+
+    //reorg player1 cards
+
+
+}
+
 void Draw_Card_Outlines(sf::RenderWindow &window, struct EmptyCard empty_card_array[16]) {
     for (int i = 0; i != 16; i++) {
         window.draw(empty_card_array[i].card_graphics);
     }
 }
+void Draw_Selected_Board(sf::RenderWindow& window, struct Game_Board* game_board, struct Inventory* card_selected) {
+    if (card_selected->element == TERRA || card_selected->element == INCOGNITO) {
+        window.draw(game_board->player1_Ter_image);
+    }
+    if (card_selected->element == AMPHIBIOUS || card_selected->element == INCOGNITO) {
+        window.draw(game_board->player1_Amp_image);
+    }
+    if (card_selected->element == AERIAL || card_selected->element == INCOGNITO) {
+        window.draw(game_board->player1_Aer_image);
+    }
 
-void Draw_Board(sf::RenderWindow& window, struct Game_Board* game_board) {
+
+}
+void Draw_Board(sf::RenderWindow& window, struct Game_Board* game_board, struct Inventory * card_selected) {
     window.draw(game_board->background);
     window.draw(game_board->board_image);
     //add selector here
+    if (card_selected != NULL) {
+        Draw_Selected_Board(window, game_board, card_selected);
+
+    }
+
     window.draw(game_board->elements);
+    
+
+    window.draw(game_board->player2_Ter_image);
+    window.draw(game_board->player2_Amp_image);
+    window.draw(game_board->player2_Aer_image);
+
+
+    window.draw(game_board->ready_button_image);
+    window.draw(game_board->show_button_image);
+    window.draw(game_board->discard_button_image);
+    window.draw(game_board->inspect_button_image);
+
+    window.draw(game_board->power_button_image);
+    window.draw(game_board->defence_button_image);
+    window.draw(game_board->agility_button_image);
+    window.draw(game_board->freakiness_button_image);
+    window.draw(game_board->intelligence_button_image);
 }
 
 
@@ -762,7 +1383,6 @@ void Draw_Cards(sf::RenderWindow& window, struct Inventory* player1_cards, struc
 
 
 int main() {
-
     cout << "Waiting for connection . . ." << endl;
 
     //SET UP SERVER
@@ -855,23 +1475,36 @@ int main() {
 
     struct Inventory* player1_cards = new struct Inventory;//(struct Inventory*) malloc(sizeof(struct Inventory));
     struct Inventory* player2_cards = new struct Inventory;//(struct Inventory*)malloc(sizeof(struct Inventory));
-    struct Inventory* discard_pile = new struct Inventory; //(struct Inventory*)malloc(sizeof(struct Inventory));
+    struct Inventory* discard_pile = NULL;// new struct Inventory; //(struct Inventory*)malloc(sizeof(struct Inventory));
     struct Inventory* card_pile = new struct Inventory;//(struct Inventory*)malloc(sizeof(struct Inventory));
 
-    discard_pile = NULL;
+    //discard_pile = NULL;
 
     //int game_board_array[2][3] = { 0 }; //This is for sending to client/server NOT for the gamelogic
     int gamestate = CARD_PLACING;
-    int game_data[BYTESOFGAMEDATA] = {2};
+    uint32_t  initial_game_data[STARTINGCARDS];
     //struct Inventory* game_board_linked_list[2][3] = { NULL };
     //int both_players_ready = FALSE;
     int player_1_ready = FALSE;
     int player_2_ready = FALSE;
     int game_display_information = NORMAL_DISPLAY_SCREEN;
+    int attack_type = 0;
+    struct Inventory* card_to_attack = NULL;
+    int winner;
+    int animation_status = ANIMATION_NOT_RUNNING;
 
     struct Inventory* card_selected = NULL;
     struct EmptyCard empty_card_array[16];
     struct Texture_Struct *textures = new struct Texture_Struct;
+    struct Animation_Screen* animation_screen = new struct Animation_Screen;
+
+    //TEMPORARY
+
+
+    
+
+    //TEMPORARY
+
 
     struct Game_Board* game_board = new struct Game_Board;//(struct Inventory*)malloc(sizeof(struct Inventory));
 
@@ -880,19 +1513,43 @@ int main() {
     Starting_Cards(card_bank, player1_cards, player2_cards, card_pile);
     Create_Card_Graphics(empty_card_array);
     Print_Linked_List(player1_cards);
-    Set_Card_Positions(player1_cards, player2_cards, empty_card_array);
+    Set_Card_Positions(player1_cards, player2_cards);
     Set_Board_Position(game_board);
+    Setup_Animation(animation_screen);
+    Setup_Buttons(game_board);
 
     Initialise_Graphics(textures, player1_cards, player2_cards, card_pile, game_board);
+    Get_Card_Data(player1_cards, player2_cards, card_pile);
+
+    animation_screen->player1_Card_image.setTexture(&textures->L_Vriska_1, true);
+    animation_screen->player2_Card_image.setTexture(&textures->L_Vriska_1, true);
 
     //Setup Game Window
-    sf::RenderWindow window(sf::VideoMode(SCREENWIDTH, SCREENHEIGHT), "Phantrumps", sf::Style::Titlebar | sf::Style::Close);
+    //sf::RenderWindow window(sf::VideoMode(SCREENWIDTH, SCREENHEIGHT), "Phantrumps", sf::Style::Titlebar | sf::Style::Close);
+    
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
     //sf::RenderWindow window(sf::VideoMode(800, 600), "SFML shapes", sf::Style::Default, settings);
-    //sf::RenderWindow window(sf::VideoMode(SCREENWIDTH, SCREENHEIGHT), "Phantrumps");
+    sf::RenderWindow window(sf::VideoMode(SCREENWIDTH, SCREENHEIGHT), "Phantrumps - Host");
+    window.setFramerateLimit(60);
+    sf::View view = window.getDefaultView();
     //sf::RenderWindow window(sf::VideoMode(SCREENWIDTH, SCREENHEIGHT), "Phantrumps", sf::Style::Fullscreen);
+    struct Inventory* curnode = player2_cards;
+    for (int i = 0; curnode != NULL; i++) {
+        initial_game_data[i] = curnode->card_num;
+        cout << "Ply2 card: " << initial_game_data[i] << " i: " << i << endl;
+        curnode = curnode->next;
+    }
+    //uint32_t  conv_initial_game_data[STARTINGCARDS];
+    //for (int i = 0; i!= STARTINGCARDS; i++) {
+    //    conv_initial_game_data[i] = htonl(initial_game_data[i]);
+    //}
+    send(clientSocket, (char*)initial_game_data, STARTINGCARDS*sizeof(uint32_t), 0);
+
+    //send(clientSocket, (char*)initial_game_data, BYTESOFGAMEDATA + 1, 0);
+
     int ret;
+    int turn_type = 0;
 
     //Game Loop
     while (window.isOpen())
@@ -900,26 +1557,132 @@ int main() {
 
 
         if (gamestate == CARD_PLACING) {
-            if (player_1_ready == TRUE && player_2_ready == TRUE) {
             
-            }
-            else {
+            //else {
             
                 //stuff player 1 does when they arnt ready - check if ready button is clicked so can send info to player 2
             
-            }
+            //}
             if (player_2_ready == FALSE) {
+                struct timeval timeout;
+                timeout.tv_sec = 0;
+                timeout.tv_usec = 0;
+                fd_set rds;
+                FD_ZERO(&rds);
+                FD_SET(clientSocket, &rds);
+                ret = select(clientSocket + 1, &rds, NULL, NULL, &timeout);
+                if (FD_ISSET(clientSocket, &rds)) {
+                    uint32_t player2_array[3];
+                    ZeroMemory((char*)player2_array, 3*sizeof(uint32_t));
+                    int bytesReceived = recv(clientSocket, (char*)player2_array, 3*sizeof(uint32_t), 0);
+                    if (bytesReceived == SOCKET_ERROR) { cerr << "Client quit program or Socket error occured, quitting program " << endl; break; }
+                    if (bytesReceived == 0) { cout << "client disconnected " << endl; break; }
+                    player_2_ready = TRUE;
+                    //Sending Data
+                    //i dont think i need to send anything tbh
+
+                    //buf should be [card1, card2, card3] on player2s board
+                    cout << player2_array[0] << endl;
+                    cout << player2_array[1] << endl;
+                    cout << player2_array[2] << endl;
+
+                    Transfer_Ply2_Cards_To_Board(player2_array, player2_cards, game_board);
+                    //cout << "TEST213" << endl;
+                    //if (game_board->player2_Ter == NULL) { cout << "bruh" << endl; }
+                    //cout << game_board->player2_Ter->card_num << endl;
+                    //cout << game_board->player2_Amp->card_num << endl;
+                    //cout << game_board->player2_Aer->card_num << endl;
+                }
+                else if (ret == -1) {
+                    cout << "ret is -1 ERROR\n" << endl;
+                    WSACleanup();
+                    closesocket(clientSocket);
+                }
                 //listen for socket then say player 2 is ready
+            }
+            if (player_1_ready == TRUE && player_2_ready == TRUE) {
+                uint32_t tell_player2_next_move[1]; // if 1 its player2 attacking, if 2 its player1 attking
+                if (turn_type == 0) {
+                    gamestate = PLAYER_1_ATK;
+                    tell_player2_next_move[0] = 0;
+                   
+                }
+                else if (turn_type == 1) {
+                    gamestate = PLAYER_2_ATK;
+                    tell_player2_next_move[0] = 1;
+
+                }
+                player_1_ready = FALSE;
+                player_2_ready = FALSE;
+
+                
+
+                send(clientSocket, (char*)tell_player2_next_move, 1 * sizeof(uint32_t), 0);
+                cout << "FINISHED CARD PLACING PHASE " << endl;
             }
 
         
         }
-        else if (gamestate == PLAYER_1_ATK) {
+        if (gamestate == PLAYER_1_ATK) {
             //do shit then send socket data
-        
+            /*
+            if (turn_type == 0) {
+                gamestate = PLAYER_2_ATK;
+            }
+            else if (turn_type == 1) {
+                turn_type = 0;
+                gamestate = CARD_PLACING;
+            }
+            */
         }
-        else if (gamestate == PLAYER_2_ATK) {
+        if (gamestate == PLAYER_2_ATK+3) {
             //wait for recieved socket data
+
+            if (player_2_ready == FALSE) {
+                struct timeval timeout;
+                timeout.tv_sec = 0;
+                timeout.tv_usec = 0;
+                fd_set rds;
+                FD_ZERO(&rds);
+                FD_SET(clientSocket, &rds);
+                ret = select(clientSocket + 1, &rds, NULL, NULL, &timeout);
+                if (FD_ISSET(clientSocket, &rds)) {
+                    uint32_t player2_array[3];
+                    ZeroMemory((char*)player2_array, 3 * sizeof(uint32_t));
+                    int bytesReceived = recv(clientSocket, (char*)player2_array, 3 * sizeof(uint32_t), 0);
+                    if (bytesReceived == SOCKET_ERROR) { cerr << "Client quit program or Socket error occured, quitting program " << endl; break; }
+                    if (bytesReceived == 0) { cout << "client disconnected " << endl; break; }
+
+                    player_2_ready = TRUE;
+                    //Sending Data
+                    //i dont think i need to send anything tbh
+
+                    //buf should be [card lane doing attacking with, card lane attacking, attack type]
+
+                    //after done
+                    if (turn_type == 1) {
+
+                        //send back player2 board plus known player 1 board: e.g. [4, 23, 3, 0, 1, 0]
+
+                        gamestate = PLAYER_1_ATK;
+                    }
+                    else if (turn_type == 0) {
+                        turn_type = 1;
+
+                        //send player2 board plus discard pile - needs to be 28 big, card val is 0 if there is no card in discard
+
+                        gamestate = CARD_PLACING;
+                    }
+
+                }
+                else if (ret == -1) {
+                    cout << "ret is -1 ERROR\n" << endl;
+                    WSACleanup();
+                    closesocket(clientSocket);
+                }
+                //listen for socket then say player 2 is ready
+            }
+
         }
 
 
@@ -935,7 +1698,7 @@ int main() {
         }
 
 
-
+        /*
         struct timeval timeout;
         timeout.tv_sec = 0;
         timeout.tv_usec = 0;
@@ -966,21 +1729,24 @@ int main() {
             string userInput = "Hello World!";
             cout << userInput.size() << endl;
             //send(clientSocket, userInput.c_str(), userInput.size() + 1, 0);
-            send(clientSocket, (char*)game_data, BYTESOFGAMEDATA+ 1, 0);
+            //send(clientSocket, (char*)game_data, BYTESOFGAMEDATA+ 1, 0);
         }
         else if(ret == -1) {
             cout << "ret is -1 ERROR\n" << endl;
             WSACleanup();
             closesocket(clientSocket);
         }
+        */
         /*
         sf::Vector2f mouse = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+
         // retrieve the bounding box of the sprite
         
         sf::FloatRect bounds;
         struct Inventory* curnode = player1_cards;
         while (curnode != NULL) {
             bounds = curnode->card_image.getGlobalBounds();
+
             // check all cards in list
             if (bounds.contains(mouse))
             {
@@ -1004,54 +1770,114 @@ int main() {
             if (event.type == sf::Event::Closed) {
                 window.close();
             }
+            else if (event.type == sf::Event::Resized) {
+                // resize my view
+                view.setSize({
+                        static_cast<float>(event.size.width),
+                        static_cast<float>(event.size.height)
+                    });
+                window.setView(view);
+                // and align shape
+            }
             else if (event.type == sf::Event::MouseButtonPressed)
             {
-                if (event.mouseButton.button == sf::Mouse::Left)
+                if (event.mouseButton.button == sf::Mouse::Right) {
+                    if (player_1_ready == FALSE) {
+                        Remove_From_Board(window, game_board, player1_cards);
+                        Set_New_Position(player1_cards);
+                    }
+
+                }
+                else if (event.mouseButton.button == sf::Mouse::Left)
                 {
-                    card_selected = Get_Selected_Card(window, player1_cards, textures);
-                    if (card_selected != NULL) {
-
-                        //Put into board
-
-                    }
-                    /*
+                    //attack_type = 0;
+                    //clicking buttons
                     sf::Vector2f mouse = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-                    // retrieve the bounding box of the sprite
                     sf::FloatRect bounds;
-                    struct Inventory* curnode = player1_cards;
-                    while (curnode != NULL) {
-                        bounds = curnode->card_image.getGlobalBounds();
-                        // check all cards in list
-                        if (bounds.contains(mouse))
-                        {
-                            cout << "test" << endl;
-                            break;
-                            // mouse is on sprite!
+
+                    bounds = game_board->ready_button_image.getGlobalBounds();
+                    if (bounds.contains(mouse)) {
+                        if (gamestate = CARD_PLACING && player_1_ready == FALSE) {
+                            player_1_ready = TRUE;
                         }
-                        curnode = curnode->next;
                     }
-                    //std::cout << "the right button was pressed" << std::endl;
-                    //std::cout << "mouse x: " << event.mouseButton.x << std::endl;
-                    //std::cout << "mouse y: " << event.mouseButton.y << std::endl;
-                    */
+
+                    if (gamestate == PLAYER_1_ATK) {
+                        
+                        if (card_selected != NULL) {
+                            if (Is_Card_Selected_On_Board(game_board, card_selected) == TRUE) {
+                                if (attack_type == 0) {
+                                    attack_type = 1; // Attack_Type_Clicked();//set 0 normally, set back to 0 after round has ended or a new card has been s
+                                }
+                            }
+
+
+
+                        }
+                        if (attack_type != 0) {
+                            cout << "donelol1" << endl;
+                            card_to_attack = Get_Enemy_Card_To_Attack(window, game_board);
+                            cout << "donelol2" << endl;
+                            //cout << card_to_attack->card_num << endl;
+                            //card_to_attack num is element
+                            if(card_to_attack != NULL){
+
+                                // 0: tie 1: player1 wins 2: player2 wins
+                                //cout << "donelol3" << endl;
+                                winner = Find_Winner(card_selected, card_to_attack, attack_type);
+                                //cout << "donelol4" << endl;
+                                //fill_animation_data(winner);
+                                animation_status = ANIMATION_RUNNING;
+                                //send(array with)
+                                attack_type = 0;
+                                cout << "donelol" << endl;
+                            }
+                            else if (card_to_attack == NULL && Clicked_Empty_Pos()) {
+                            
+                                winner = 2;
+                                animation_status = ANIMATION_RUNNING;
+                            
+                            }
+
+                                //[player2_card_attacked, player1_card_attacking, attack_type]
+
+                                //[enemy card1,card2,card3, 0,0,0] 0's if card is not known, 1's if it is known
+                        }
+                        
+                    }
+
+                    //moving cards to board
+                    if (player_1_ready == FALSE && gamestate == CARD_PLACING) {
+                        if (card_selected != NULL) {
+                            if (Check_If_Card_Board_Available(window,game_board, card_selected) == TRUE) {
+                                Set_Card_To_Board(window, game_board, card_selected);
+                                player1_cards = Put_Card_At_Back(player1_cards, card_selected->card_num);
+                                card_selected->on_board = TRUE;
+                                //card_selected = NULL;
+                                Set_New_Position(player1_cards);
+                                
+                            }
+                        }
+                    }
+                    //cout << "sucess2!" << endl;
+                    if (attack_type == 0) {
+                        card_selected = Get_Selected_Card(window, player1_cards, textures);
+                    }
+                    //cout << "sucess3!" << endl;
                 }
             }
-
-
-
         }
-
         window.clear();
-        //cout << "test" << endl;
-        //Set_Card_Positions(player1_cards, empty_card_array);
 
         //DO DRAWINGS
         
-        Draw_Card_Outlines(window, empty_card_array);
-        Draw_Board(window, game_board);
+        //Draw_Card_Outlines(window, empty_card_array);
+        Draw_Board(window, game_board, card_selected);
         Draw_Cards(window, player1_cards, player2_cards);
-        
-
+        if (animation_status == ANIMATION_RUNNING) {
+            window.draw(animation_screen->player1_Card_image);
+            window.draw(animation_screen->player2_Card_image);
+        }
         if (game_display_information == DISCARD_DISPLAY_SCREEN) {
         
         }
