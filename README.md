@@ -30,6 +30,8 @@ The computer must have a screen of at least 1350x800. Resizing is not possible a
 
 9. Every 2 turns each player gets 1 new card from the card pile.
 
+NOTE: For functional purposes there is no difference between any of the 3 lanes (Terra, Amphibious and Aerial) and there is no difference between any of the 5 stats (Agility, Intelligence, Defence, Power and Freakiness) in terms of what they can do. They are simply different variables that each card has unique values for. i.e. Power could just as well have been called 'Coolness'. A common misunderstanding made when playtesting was defence was used as some form of blocking for power. This is not true.
+
 ## Sample game
 
 Because Phantrumps can seem a bit daunting with all the rules, I have demonstrated a simple game consisting of 1 turn here:
@@ -42,7 +44,7 @@ Player 2's screen is the exact same as Player 1's screen except with different c
 ![PLAYER2-1](https://user-images.githubusercontent.com/32857511/132941809-4156e2f8-e192-4ef0-81b1-deeb5689ceb5.PNG)
 
 
-Player 1 has placed down 2 cards on the board and clicked the ready button. Now the phase has changed to Waiting as the game is waiting for Player 2 to click ready.
+Player 1 has placed down 2 cards on the board by clicking the card on the left and then clicking the lane on the board they wanted to place the card. Then Player 1 clicked the ready button. Now the phase has changed to Waiting as the game is waiting for Player 2 to click ready. If Player 1 placed a card in the Terra lane and then decided they did not want it there anymore they could right click the card to remove it. 
 ![PLAYER1-2](https://user-images.githubusercontent.com/32857511/132941854-29b1e936-2860-4dfa-8986-8a2f34a05815.PNG)
 
 
@@ -54,7 +56,7 @@ Player 1 has clicked on the Qiggly card (which can be seen be the fact it is lar
 ![PLAYER1-3](https://user-images.githubusercontent.com/32857511/132941863-d972c7f6-1160-4bf2-bf79-bd45ea023fca.PNG)
 
 
-Player 1 attacked into Aerial - an lane Player 2 left empty. Thus because no card is there Player 1 lost the Qiggly card.
+Player 1 attacked into Aerial - a lane Player 2 left empty. Thus because no card is there Player 1 lost the Qiggly card. Since this is Player 2's screen, on the right side the amount of cards Player 1 has can be seen. Notice how it is 4 however in the previous Player 2 image it was 5 - since Player 1 just lost the Qiggly card.
 ![PLAYER2-3](https://user-images.githubusercontent.com/32857511/132941876-bb9ac7cc-b690-43bd-bd1e-138e352276d7.PNG)
 
 
