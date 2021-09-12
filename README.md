@@ -1,3 +1,5 @@
+DOWNLOAD AT moshi.cf/Coding/Phantrumps
+
 # Phantrumps
 
 Phantrumps is a card game I created with friends in 2017. For the CSE project I wanted to try and turn this fun card game into an actual computer game. To play you need 2 players on two different computers, one will run the host exe and one will run the client exe. **The game connects on Port 54000 so the host must ensure this Port is forwarded** before the client can connect to the host's IP. There are 30 cards in total to play with.
